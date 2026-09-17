@@ -1,0 +1,81 @@
+const products = [
+  {id:1,name:"Leica M6 Classic",category:"camera",condition:"Excellent",location:"London",publicPrice:2350,memberPrice:2180,tag:"Featured",description:"A beautifully kept M6 Classic with recent service history, clean finder and smooth advance."},
+  {id:2,name:"Bang & Olufsen Beogram",category:"audio",condition:"Very good",location:"Bristol",publicPrice:680,memberPrice:595,tag:"Member deal",description:"A sculptural turntable in excellent working order, with original cover and upgraded cartridge."},
+  {id:3,name:"Vitra Soft Pad Chair",category:"design",condition:"Good",location:"Brighton",publicPrice:1250,memberPrice:1090,tag:"Just listed",description:"Original Vitra production with warm patina. Comfortable, honest and made to last."},
+  {id:4,name:"Snow Peak Field Kitchen",category:"outdoor",condition:"Excellent",location:"Edinburgh",publicPrice:420,memberPrice:365,tag:"Member deal",description:"Complete modular field kitchen, lightly used and stored dry. Ideal for camp or garden."},
+  {id:5,name:"Nikon FM2 + 50mm",category:"camera",condition:"Very good",location:"Manchester",publicPrice:540,memberPrice:490,tag:"New",description:"Dependable mechanical Nikon body with bright 50mm lens and fresh light seals."},
+  {id:6,name:"Braun LE01 Speaker",category:"audio",condition:"Excellent",location:"London",publicPrice:890,memberPrice:780,tag:"Featured",description:"Minimal wireless speaker designed by Dieter Rams and revived with modern internals."},
+  {id:7,name:"Anglepoise Type 75",category:"design",condition:"Very good",location:"Oxford",publicPrice:145,memberPrice:120,tag:"New",description:"Classic task lamp in graphite grey. Clean joints, cable and shade."},
+  {id:8,name:"Hilleberg Nallo 2",category:"outdoor",condition:"Good",location:"Leeds",publicPrice:610,memberPrice:545,tag:"Member deal",description:"Light, dependable four-season tent. Used with care and recently seam checked."}
+];
+
+let memberMode = false;
+let activeCategory = "all";
+let query = "";
+
+const grid = document.querySelector("#productGrid");
+const searchInput = document.querySelector("#searchInput");
+const emptyState = document.querySelector("#emptyState");
+const signinDialog = document.querySelector("#signinDialog");
+const sellDialog = document.querySelector("#sellDialog");
+const productDialog = document.querySelector("#productDialog");
+
+const money = value => new Intl.NumberFormat("en-GB", {style:"currency",currency:"GBP",maximumFractionDigits:0}).format(value);
+
+function renderProducts(){
+  const visible = products.filter(product => (activeCategory === "all" || product.category === activeCategory) && product.name.toLowerCase().includes(query));
+  grid.innerHTML = visible.map(product => `
+    <article class="product-card" data-product-id="${product.id}" tabindex="0" aria-label="View ${product.name}">
+      <div class="product-image ${product.category}">
+        <div class="card-badges"><span class="card-badge">${product.tag}</span>${product.memberPrice ? '<span class="card-badge member">MO price</span>' : ''}</div>
+      </div>
+      <div class="product-info">
+        <div class="product-meta"><span>${product.condition}</span><span>${product.location}</span></div>
+        <h3>${product.name}</h3>
+        <div class="price-row"><span class="public-price">${money(product.publicPrice)}</span><span class="member-price ${memberMode ? '' : 'locked'}">Member<strong>${memberMode ? money(product.memberPrice) : '£••••'}</strong></span></div>
+      </div>
+    </article>`).join("");
+  emptyState.hidden = visible.length > 0;
+}
+
+function showProduct(id){
+  const product = products.find(item => item.id === Number(id));
+  document.querySelector("#productDialogBody").innerHTML = `<div class="product-detail"><div class="product-image ${product.category}"></div><div class="detail-copy"><span class="kicker">${product.condition} · ${product.location}</span><h2>${product.name}</h2><div class="detail-price">Public price <strong>${money(product.publicPrice)}</strong></div><div class="detail-member">Motion Only price<br><strong>${memberMode ? money(product.memberPrice) : 'Sign in to reveal'}</strong></div><p>${product.description}</p><button class="button button-dark full-width" id="interestButton">I’m interested</button><small>Seller identity and item history are reviewed before a listing goes live.</small></div></div>`;
+  productDialog.showModal();
+  document.querySelector("#interestButton").addEventListener("click", () => showToast("Buyer enquiries will be enabled with the live backend."));
+}
+
+document.querySelectorAll(".category-tabs button").forEach(button => button.addEventListener("click", () => {
+  document.querySelector(".category-tabs .active").classList.remove("active");
+  button.classList.add("active"); activeCategory = button.dataset.category; renderProducts();
+}));
+
+searchInput.addEventListener("input", event => { query = event.target.value.toLowerCase().trim(); renderProducts(); });
+grid.addEventListener("click", event => { const card = event.target.closest(".product-card"); if(card) showProduct(card.dataset.productId); });
+grid.addEventListener("keydown", event => { const card = event.target.closest(".product-card"); if(card && (event.key === "Enter" || event.key === " ")) showProduct(card.dataset.productId); });
+
+function openSignin(){ signinDialog.showModal(); }
+document.querySelectorAll("#signinButton,#unlockButton").forEach(button => button.addEventListener("click", openSignin));
+document.querySelector("#verifyButton").addEventListener("click", () => {
+  memberMode = true; signinDialog.close(); renderProducts();
+  document.querySelector("#memberCallout").innerHTML = '<div class="member-icon">✓</div><div><strong>Membership verified</strong><span>Your Motion Only prices are now visible across the market.</span></div>';
+  document.querySelector("#signinButton").textContent = "Member verified";
+  showToast("Member pricing unlocked");
+});
+
+function openSell(){ sellDialog.showModal(); }
+document.querySelectorAll("#sellButton,#heroSellButton,#communitySellButton").forEach(button => button.addEventListener("click", openSell));
+document.querySelector("#sellForm").addEventListener("submit", event => {
+  event.preventDefault(); const data = new FormData(event.target);
+  products.unshift({id:Date.now(),name:data.get("name"),category:data.get("category"),condition:"Draft",location:"Your location",publicPrice:Number(data.get("publicPrice")),memberPrice:Number(data.get("memberPrice")),tag:"Preview",description:data.get("description")});
+  activeCategory = "all"; query = ""; searchInput.value = ""; document.querySelectorAll(".category-tabs button").forEach(b => b.classList.toggle("active", b.dataset.category === "all"));
+  renderProducts(); sellDialog.close(); event.target.reset(); document.querySelector("#browse").scrollIntoView(); showToast("Listing preview added");
+});
+
+document.querySelectorAll(".modal-close").forEach(button => button.addEventListener("click", () => button.closest("dialog").close()));
+document.querySelectorAll("dialog").forEach(dialog => dialog.addEventListener("click", event => { if(event.target === dialog) dialog.close(); }));
+document.querySelector("#loadMore").addEventListener("click", () => showToast("You’ve reached the end of the demo listings."));
+
+function showToast(message){ const toast = document.querySelector("#toast"); toast.textContent = message; toast.classList.add("show"); setTimeout(() => toast.classList.remove("show"), 2600); }
+
+renderProducts();
