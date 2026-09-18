@@ -4,7 +4,7 @@ import { copyFile, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 await rm("dist", { recursive: true, force: true });
 await mkdir("dist", { recursive: true });
 
-const release = "theme-modes-v1";
+const release = "marketplace-sections-v2";
 const html = (await readFile("index.html", "utf8"))
   .replace('href="styles.css"', `href="styles.css?v=${release}"`)
   .replace('src="app.js"', `src="app.js?v=${release}"`);

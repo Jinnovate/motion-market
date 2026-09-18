@@ -20,23 +20,47 @@ document.querySelector(".brand-ring").innerHTML = '<i>M</i><b>M</b>';
 document.querySelector(".brand small").textContent = "BUY - SELL - CONNECT";
 document.querySelector(".market-status b").textContent = "0 LISTINGS";
 document.querySelector(".market-status span").textContent = "READY FOR SELLERS";
-document.querySelector('.filters [data-category="all"] span').textContent = "0";
+document.querySelector(".filters").remove();
 emptyState.textContent = "NO LISTINGS YET — BE THE FIRST TO LIST AN ITEM.";
 
-const themeButton = document.querySelector(".theme");
+const oldThemeButton = document.querySelector(".theme");
+const themePicker = document.createElement("label");
+themePicker.className = "theme-picker";
+themePicker.innerHTML = '<span>COLOUR MODE</span><select aria-label="Colour mode"><option value="dark">Dark</option><option value="light">Light</option><option value="natural">Natural</option></select>';
+oldThemeButton.replaceWith(themePicker);
+const themeSelect = themePicker.querySelector("select");
 const themes = ["dark", "light", "natural"];
-const themeLabels = { dark: "◉  DARK", light: "☼  LIGHT", natural: "◐  NATURAL" };
 function applyTheme(theme) {
   document.documentElement.dataset.theme = theme;
-  themeButton.textContent = themeLabels[theme];
-  themeButton.setAttribute("aria-label", `Colour mode: ${theme}. Click to change.`);
+  themeSelect.value = theme;
   localStorage.setItem("motion-market-theme", theme);
 }
 const savedTheme = localStorage.getItem("motion-market-theme");
 applyTheme(themes.includes(savedTheme) ? savedTheme : "dark");
-themeButton.addEventListener("click", () => {
-  const current = document.documentElement.dataset.theme;
-  applyTheme(themes[(themes.indexOf(current) + 1) % themes.length]);
+themeSelect.addEventListener("change", event => applyTheme(event.target.value));
+
+const listingCategories = [
+  "Cameras & Photography", "Audio & Hi-Fi", "Computers & Technology", "Phones & Tablets",
+  "Home & Furniture", "Art & Collectables", "Clothing & Accessories", "Sports & Fitness",
+  "Outdoors & Travel", "Vehicles & Parts", "Tools & Equipment", "Books & Media",
+  "Health & Beauty", "Baby & Children", "Food & Drink", "Other Products",
+  "Creative & Design", "Photography & Video", "Marketing & Social Media", "Business & Consulting",
+  "Technology & Web", "Repairs & Maintenance", "Home & Garden Services", "Events & Entertainment",
+  "Training & Coaching", "Transport & Delivery", "Wellbeing & Personal Care", "Other Services"
+];
+const sellForm = document.querySelector("#sellForm");
+sellForm.querySelector('[type="submit"]').textContent = "ADD LISTING";
+sellForm.querySelector('label:has(select[name="category"])').insertAdjacentHTML("beforebegin", '<label>LISTING TYPE<select name="listingType"><option value="product">Product</option><option value="service">Service</option></select></label>');
+sellForm.querySelector('select[name="category"]').innerHTML = listingCategories.map(category => `<option value="${category}">${category}</option>`).join("");
+sellForm.querySelector('label:has(textarea)').insertAdjacentHTML("beforebegin", '<label>LISTING IMAGE<input required type="file" name="image" accept="image/jpeg,image/png,image/webp"><span class="image-help">JPG, PNG or WebP</span><img class="upload-preview" alt="Selected image preview" hidden></label>');
+const imageInput = sellForm.querySelector('input[name="image"]');
+imageInput.addEventListener("change", () => {
+  const preview = sellForm.querySelector(".upload-preview");
+  const file = imageInput.files[0];
+  if (!file) { preview.hidden = true; return; }
+  const reader = new FileReader();
+  reader.addEventListener("load", () => { preview.src = reader.result; preview.hidden = false; });
+  reader.readAsDataURL(file);
 });
 
 const authDialog = document.createElement("dialog");authDialog.className="modal compact auth-modal";authDialog.innerHTML=`<button class="modal-close" aria-label="Close">×</button><span class="eyebrow">MOTION MARKET ACCOUNT</span><h2 id="authTitle">CREATE ACCOUNT</h2><p id="authIntro">Create your account to save listings, contact sellers and manage your items.</p><form id="authForm"><label id="nameLabel">FULL NAME<input name="fullName" autocomplete="name" required></label><label>EMAIL<input name="email" type="email" autocomplete="email" required></label><label>PASSWORD<input name="password" type="password" autocomplete="new-password" minlength="8" required></label><p class="auth-error" id="authError"></p><button class="gold-btn full" type="submit">CREATE ACCOUNT</button></form><button class="auth-switch" id="authSwitch">ALREADY HAVE AN ACCOUNT? SIGN IN</button>`;document.body.appendChild(authDialog);let authMode="signup";
@@ -44,8 +68,8 @@ const authDialog = document.createElement("dialog");authDialog.className="modal 
 const money = value => new Intl.NumberFormat("en-GB", {style:"currency",currency:"GBP",maximumFractionDigits:0}).format(value);
 
 function renderProducts(){
-  const visible = products.filter(product => (activeCategory === "all" || product.category === activeCategory) && product.name.toLowerCase().includes(query));
-  grid.innerHTML = visible.map(product => `
+  const visible = products.filter(product => [product.name, product.description, product.category, product.location].join(" ").toLowerCase().includes(query));
+  const renderCards = items => items.map(product => `
     <article class="product-card" data-product-id="${product.id}" tabindex="0" aria-label="View ${product.name}">
       <div class="product-image"><img src="${product.image}" alt="${product.name}" loading="lazy">
         <div class="card-badges"><span class="card-badge">${product.tag}</span><button class="save-btn" data-save-id="${product.id}" aria-label="Save ${product.name}">${savedItems.has(product.id) ? '★' : '☆'}</button></div>
@@ -56,7 +80,12 @@ function renderProducts(){
         <div class="price-row"><span class="public-price">${money(product.publicPrice)}</span><span class="member-price ${memberMode ? '' : 'locked'}">Member<strong>${memberMode ? money(product.memberPrice) : '£••••'}</strong></span></div>
       </div>
     </article>`).join("");
-  emptyState.hidden = visible.length > 0;
+  const productListings = visible.filter(item => item.listingType !== "service");
+  const serviceListings = visible.filter(item => item.listingType === "service");
+  grid.innerHTML = `
+    <section class="listing-section"><div class="section-heading"><span>PRODUCTS</span><small>${productListings.length} LISTINGS</small></div><div class="listing-grid">${renderCards(productListings) || '<p class="section-empty">NO PRODUCTS LISTED YET</p>'}</div></section>
+    <section class="listing-section"><div class="section-heading"><span>SERVICES</span><small>${serviceListings.length} LISTINGS</small></div><div class="listing-grid">${renderCards(serviceListings) || '<p class="section-empty">NO SERVICES LISTED YET</p>'}</div></section>`;
+  emptyState.hidden = true;
   document.querySelector("#loadMore").hidden = products.length === 0;
 }
 
@@ -66,11 +95,6 @@ function showProduct(id){
   productDialog.showModal();
   document.querySelector("#interestButton").addEventListener("click", () => showToast("Buyer enquiries will be enabled with the live backend."));
 }
-
-document.querySelectorAll(".filters button[data-category]").forEach(button => button.addEventListener("click", () => {
-  document.querySelector(".filters button[data-category].active")?.classList.remove("active");
-  button.classList.add("active"); activeCategory = button.dataset.category; renderProducts();
-}));
 
 searchInput.addEventListener("input", event => { query = event.target.value.toLowerCase().trim(); renderProducts(); });
 grid.addEventListener("click", event => { const save = event.target.closest(".save-btn"); if(save){ event.stopPropagation(); const id=Number(save.dataset.saveId); savedItems.has(id)?savedItems.delete(id):savedItems.add(id); renderProducts(); showToast(savedItems.has(id)?"Item saved":"Item removed from saved"); return; } const card = event.target.closest(".product-card"); if(card) showProduct(card.dataset.productId); });
@@ -86,11 +110,15 @@ document.querySelector("#verifyButton").addEventListener("click", () => {
 
 function openSell(){ sellDialog.showModal(); }
 document.querySelectorAll("#sellButton").forEach(button => button.addEventListener("click", openSell));
-document.querySelector("#sellForm").addEventListener("submit", event => {
+sellForm.addEventListener("submit", event => {
   event.preventDefault(); const data = new FormData(event.target);
-  const newItem={id:Date.now(),name:data.get("name"),category:data.get("category"),condition:"Draft",location:"Your location",publicPrice:Number(data.get("publicPrice")),memberPrice:Number(data.get("memberPrice")),tag:"Preview",image:"https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=900&q=82",description:data.get("description")}; products.unshift(newItem); myListings.unshift(newItem);
-  activeCategory = "all"; query = ""; searchInput.value = ""; document.querySelectorAll(".category-tabs button").forEach(b => b.classList.toggle("active", b.dataset.category === "all"));
-  renderProducts(); sellDialog.close(); event.target.reset(); document.querySelector("#browse").scrollIntoView(); showToast("Listing preview added");
+  const file = data.get("image");
+  const reader = new FileReader();
+  reader.addEventListener("load", () => {
+    const newItem={id:Date.now(),name:data.get("name"),listingType:data.get("listingType"),category:data.get("category"),condition:"Draft",location:"Your location",publicPrice:Number(data.get("publicPrice")),memberPrice:Number(data.get("memberPrice")),tag:"New",image:reader.result,description:data.get("description")}; products.unshift(newItem); myListings.unshift(newItem);
+    query = ""; searchInput.value = ""; renderProducts(); sellDialog.close(); event.target.reset(); sellForm.querySelector(".upload-preview").hidden = true; document.querySelector("#browse").scrollIntoView(); showToast("Listing added");
+  });
+  reader.readAsDataURL(file);
 });
 
 document.querySelectorAll(".modal-close").forEach(button => button.addEventListener("click", () => button.closest("dialog").close()));
