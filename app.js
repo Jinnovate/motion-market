@@ -1,21 +1,12 @@
 import { signup, login, logout, getUser, handleAuthCallback, onAuthChange } from "@netlify/identity";
 
-const products = [
-  {id:1,name:"Leica M6 Classic",category:"camera",condition:"Excellent",location:"London",publicPrice:2350,memberPrice:2180,tag:"Featured",image:"https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=900&q=82",description:"A beautifully kept M6 Classic with recent service history, clean finder and smooth advance."},
-  {id:2,name:"Bang & Olufsen Beogram",category:"audio",condition:"Very good",location:"Bristol",publicPrice:680,memberPrice:595,tag:"Member deal",image:"https://images.unsplash.com/photo-1484704849700-f032a568e944?auto=format&fit=crop&w=900&q=82",description:"A sculptural audio piece in excellent working order."},
-  {id:3,name:"Vitra Soft Pad Chair",category:"design",condition:"Good",location:"Brighton",publicPrice:1250,memberPrice:1090,tag:"Just listed",image:"https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=900&q=82",description:"Original Vitra production with warm patina. Comfortable, honest and made to last."},
-  {id:4,name:"Snow Peak Field Kitchen",category:"outdoor",condition:"Excellent",location:"Edinburgh",publicPrice:420,memberPrice:365,tag:"Member deal",image:"https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?auto=format&fit=crop&w=900&q=82",description:"Complete modular field kitchen, lightly used and stored dry."},
-  {id:5,name:"Nikon FM2 + 50mm",category:"camera",condition:"Very good",location:"Manchester",publicPrice:540,memberPrice:490,tag:"New",image:"https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=900&q=82",description:"Dependable mechanical Nikon body with bright 50mm lens and fresh light seals."},
-  {id:6,name:"Braun LE01 Speaker",category:"audio",condition:"Excellent",location:"London",publicPrice:890,memberPrice:780,tag:"Featured",image:"https://images.unsplash.com/photo-1484704849700-f032a568e944?auto=format&fit=crop&w=900&q=82",description:"Minimal wireless speaker with considered industrial design."},
-  {id:7,name:"Anglepoise Type 75",category:"design",condition:"Very good",location:"Oxford",publicPrice:145,memberPrice:120,tag:"New",image:"https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=900&q=82",description:"Classic task lamp in graphite grey. Clean joints, cable and shade."},
-  {id:8,name:"Hilleberg Nallo 2",category:"outdoor",condition:"Good",location:"Leeds",publicPrice:610,memberPrice:545,tag:"Member deal",image:"https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?auto=format&fit=crop&w=900&q=82",description:"Light, dependable four-season tent. Used with care."}
-];
+const products = [];
 
 let memberMode = false;
 let activeCategory = "all";
 let query = "";
 let currentUser = null;
-const savedItems = new Set([1, 4]);
+const savedItems = new Set();
 const myListings = [];
 
 const grid = document.querySelector("#productGrid");
@@ -24,6 +15,13 @@ const emptyState = document.querySelector("#emptyState");
 const signinDialog = document.querySelector("#signinDialog");
 const sellDialog = document.querySelector("#sellDialog");
 const productDialog = document.querySelector("#productDialog");
+
+document.querySelector(".brand-ring").innerHTML = '<i>M</i><b>M</b>';
+document.querySelector(".brand small").textContent = "BUY - SELL - CONNECT";
+document.querySelector(".market-status b").textContent = "0 LISTINGS";
+document.querySelector(".market-status span").textContent = "READY FOR SELLERS";
+document.querySelector('.filters [data-category="all"] span').textContent = "0";
+emptyState.textContent = "NO LISTINGS YET — BE THE FIRST TO LIST AN ITEM.";
 
 const authDialog = document.createElement("dialog");authDialog.className="modal compact auth-modal";authDialog.innerHTML=`<button class="modal-close" aria-label="Close">×</button><span class="eyebrow">MOTION MARKET ACCOUNT</span><h2 id="authTitle">CREATE ACCOUNT</h2><p id="authIntro">Create your account to save listings, contact sellers and manage your items.</p><form id="authForm"><label id="nameLabel">FULL NAME<input name="fullName" autocomplete="name" required></label><label>EMAIL<input name="email" type="email" autocomplete="email" required></label><label>PASSWORD<input name="password" type="password" autocomplete="new-password" minlength="8" required></label><p class="auth-error" id="authError"></p><button class="gold-btn full" type="submit">CREATE ACCOUNT</button></form><button class="auth-switch" id="authSwitch">ALREADY HAVE AN ACCOUNT? SIGN IN</button>`;document.body.appendChild(authDialog);let authMode="signup";
 
@@ -43,6 +41,7 @@ function renderProducts(){
       </div>
     </article>`).join("");
   emptyState.hidden = visible.length > 0;
+  document.querySelector("#loadMore").hidden = products.length === 0;
 }
 
 function showProduct(id){
@@ -80,7 +79,7 @@ document.querySelector("#sellForm").addEventListener("submit", event => {
 
 document.querySelectorAll(".modal-close").forEach(button => button.addEventListener("click", () => button.closest("dialog").close()));
 document.querySelectorAll("dialog").forEach(dialog => dialog.addEventListener("click", event => { if(event.target === dialog) dialog.close(); }));
-document.querySelector("#loadMore").addEventListener("click", () => showToast("You’ve reached the end of the demo listings."));
+document.querySelector("#loadMore").addEventListener("click", () => showToast("You’ve reached the end of the listings."));
 
 function showToast(message){ const toast = document.querySelector("#toast"); toast.textContent = message; toast.classList.add("show"); setTimeout(() => toast.classList.remove("show"), 2600); }
 
@@ -99,8 +98,8 @@ subPage.id = "subPage"; subPage.className = "sub-page"; subPage.hidden = true; m
 const pageContent = {
   saved: () => `<div class="page-title"><span class="eyebrow">YOUR SHORTLIST</span><h1>SAVED ITEMS</h1><p>${savedItems.size} items kept for later.</p></div><div class="saved-list">${[...savedItems].map(id=>{const p=products.find(x=>x.id===id);return p?`<article class="row-card" data-open-product="${p.id}"><img src="${p.image}" alt=""><div><small>${p.category} · ${p.location}</small><h3>${p.name}</h3><b>${money(p.publicPrice)}</b></div><button data-remove-saved="${p.id}">REMOVE</button></article>`:""}).join("") || '<div class="empty-panel">NO SAVED ITEMS YET</div>'}</div>`,
   listings: () => `<div class="page-title"><span class="eyebrow">SELLER DESK</span><h1>MY LISTINGS</h1><p>Manage your live and draft items.</p><button class="gold-btn" data-open-sell>+ LIST AN ITEM</button></div><div class="metric-grid"><div><small>ACTIVE</small><strong>${myListings.length}</strong></div><div><small>ENQUIRIES</small><strong>0</strong></div><div><small>SOLD</small><strong>0</strong></div></div><div class="saved-list">${myListings.map(p=>`<article class="row-card"><img src="${p.image}" alt=""><div><small>DRAFT · ${p.category}</small><h3>${p.name}</h3><b>${money(p.publicPrice)}</b></div><button>EDIT</button></article>`).join("") || '<div class="empty-panel">NO LISTINGS YET — USE “LIST AN ITEM” TO CREATE ONE.</div>'}</div>`,
-  messages: () => `<div class="page-title"><span class="eyebrow">BUYER & SELLER CONTACT</span><h1>MESSAGES</h1><p>Keep every market conversation in one place.</p></div><div class="messages-layout"><div class="thread-list"><button class="active"><b>AMELIA W.</b><span>Leica M6 Classic</span><small>Is collection possible?</small></button><button><b>TOM S.</b><span>Snow Peak Field Kitchen</span><small>Still available?</small></button></div><div class="conversation"><div><span class="eyebrow">LEICA M6 CLASSIC</span><h2>AMELIA W.</h2></div><p class="bubble">Hi Joel — is collection in London possible this weekend?</p><form id="messageForm"><input required placeholder="Write a reply"><button class="gold-btn">SEND</button></form></div></div>`,
-  deals: () => `<div class="page-title"><span class="eyebrow">MOTION ONLY BENEFIT</span><h1>MEMBER DEALS</h1><p>Private prices set by members, for members.</p><button class="gold-btn" data-verify>${memberMode?'PRICES UNLOCKED':'VERIFY MEMBERSHIP'}</button></div><div class="deal-grid">${products.slice(0,4).map(p=>`<article><span>SAVE ${money(p.publicPrice-p.memberPrice)}</span><h3>${p.name}</h3><p>Public ${money(p.publicPrice)}</p><b>${memberMode?money(p.memberPrice):'LOCKED'}</b></article>`).join("")}</div>`,
+  messages: () => `<div class="page-title"><span class="eyebrow">BUYER & SELLER CONTACT</span><h1>MESSAGES</h1><p>Keep every market conversation in one place.</p></div><div class="empty-panel">NO MESSAGES YET</div>`,
+  deals: () => `<div class="page-title"><span class="eyebrow">MOTION ONLY BENEFIT</span><h1>MEMBER DEALS</h1><p>Private prices set by members, for members.</p><button class="gold-btn" data-verify>${memberMode?'PRICES UNLOCKED':'VERIFY MEMBERSHIP'}</button></div><div class="deal-grid">${products.slice(0,4).map(p=>`<article><span>SAVE ${money(p.publicPrice-p.memberPrice)}</span><h3>${p.name}</h3><p>Public ${money(p.publicPrice)}</p><b>${memberMode?money(p.memberPrice):'LOCKED'}</b></article>`).join("") || '<div class="empty-panel">NO MEMBER DEALS YET</div>'}</div>`,
   guide: () => `<div class="page-title"><span class="eyebrow">SELL WITH CONFIDENCE</span><h1>SELLING GUIDE</h1><p>Four steps to a strong Motion Market listing.</p></div><div class="guide-grid"><article><b>01</b><h3>SHOW IT CLEARLY</h3><p>Use honest, well-lit photographs from every important angle.</p></article><article><b>02</b><h3>DESCRIBE THE TRUTH</h3><p>State condition, history, faults and everything included.</p></article><article><b>03</b><h3>SET TWO PRICES</h3><p>Choose a fair public price and an optional Motion Only member rate.</p></article><article><b>04</b><h3>HAND OVER SAFELY</h3><p>Keep communication here and agree collection or tracked delivery.</p></article></div>`,
   settings: () => `<div class="page-title"><span class="eyebrow">YOUR ACCOUNT</span><h1>SETTINGS & PRIVACY</h1><p>Control how you buy, sell and appear on Motion Market.</p></div><div class="settings-panel"><label><span><b>MARKET PROFILE</b><small>Show your first name and member status</small></span><input type="checkbox" checked></label><label><span><b>MESSAGE NOTIFICATIONS</b><small>Receive updates for buyer and seller enquiries</small></span><input type="checkbox" checked></label><label><span><b>MEMBER PRICE VISIBILITY</b><small>Reveal member prices after verification</small></span><input type="checkbox" checked></label><button class="gold-btn" data-save-settings>SAVE SETTINGS</button></div>`
 };
