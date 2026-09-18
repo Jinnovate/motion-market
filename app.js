@@ -23,6 +23,22 @@ document.querySelector(".market-status span").textContent = "READY FOR SELLERS";
 document.querySelector('.filters [data-category="all"] span').textContent = "0";
 emptyState.textContent = "NO LISTINGS YET — BE THE FIRST TO LIST AN ITEM.";
 
+const themeButton = document.querySelector(".theme");
+const themes = ["dark", "light", "natural"];
+const themeLabels = { dark: "◉  DARK", light: "☼  LIGHT", natural: "◐  NATURAL" };
+function applyTheme(theme) {
+  document.documentElement.dataset.theme = theme;
+  themeButton.textContent = themeLabels[theme];
+  themeButton.setAttribute("aria-label", `Colour mode: ${theme}. Click to change.`);
+  localStorage.setItem("motion-market-theme", theme);
+}
+const savedTheme = localStorage.getItem("motion-market-theme");
+applyTheme(themes.includes(savedTheme) ? savedTheme : "dark");
+themeButton.addEventListener("click", () => {
+  const current = document.documentElement.dataset.theme;
+  applyTheme(themes[(themes.indexOf(current) + 1) % themes.length]);
+});
+
 const authDialog = document.createElement("dialog");authDialog.className="modal compact auth-modal";authDialog.innerHTML=`<button class="modal-close" aria-label="Close">×</button><span class="eyebrow">MOTION MARKET ACCOUNT</span><h2 id="authTitle">CREATE ACCOUNT</h2><p id="authIntro">Create your account to save listings, contact sellers and manage your items.</p><form id="authForm"><label id="nameLabel">FULL NAME<input name="fullName" autocomplete="name" required></label><label>EMAIL<input name="email" type="email" autocomplete="email" required></label><label>PASSWORD<input name="password" type="password" autocomplete="new-password" minlength="8" required></label><p class="auth-error" id="authError"></p><button class="gold-btn full" type="submit">CREATE ACCOUNT</button></form><button class="auth-switch" id="authSwitch">ALREADY HAVE AN ACCOUNT? SIGN IN</button>`;document.body.appendChild(authDialog);let authMode="signup";
 
 const money = value => new Intl.NumberFormat("en-GB", {style:"currency",currency:"GBP",maximumFractionDigits:0}).format(value);

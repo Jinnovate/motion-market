@@ -4,3 +4,27 @@
 .brand-ring{display:flex;align-items:center;justify-content:center;gap:0;padding-right:3px;font-size:17px;letter-spacing:-.18em}.brand-ring i{color:#fff;font-style:normal}.brand-ring b{color:var(--gold)}
 .load-more[hidden]{display:none}
 .auth-modal form{display:grid;gap:14px;margin-top:22px}.auth-modal label{font-size:9px;letter-spacing:.12em;color:var(--gold)}.auth-modal input{display:block;width:100%;background:#0c0f10;border:1px solid #354044;color:white;padding:12px;margin-top:6px}.auth-switch{display:block;width:100%;margin-top:14px;border:0;background:transparent;color:#9ba6ac;font-size:9px;letter-spacing:.08em}.auth-error{color:#e88c72!important;font-size:12px;min-height:18px;margin:0!important}.auth-modal button:disabled{opacity:.55}
+
+/* Colour modes */
+:root{color-scheme:dark;--surface:#111516;--input:#0c0f10;--active:#181d1f;--control:#31383d;--on-accent:#0c0e0e}
+:root[data-theme="light"]{color-scheme:light;--bg:#f3f1eb;--side:#fff;--panel:#faf9f5;--surface:#fff;--input:#fff;--active:#ebe8df;--control:#dedbd2;--line:#d5d1c6;--text:#171a1b;--muted:#667078;--gold:#a87912;--gold2:#b9994e;--on-accent:#fff}
+:root[data-theme="natural"]{color-scheme:light;--bg:#d9d2c3;--side:#292b26;--panel:#e8e2d6;--surface:#eee9df;--input:#f5f1e8;--active:#3a3c35;--control:#53564d;--line:#b9b09f;--text:#242721;--muted:#62675e;--gold:#9a6f18;--gold2:#b18a38;--on-accent:#fff}
+body,.sidebar,.market-panel,.product-card,.row-card,.metric-grid div,.deal-grid article,.guide-grid article,.settings-panel,.modal,.search input,.compact input,.compact select,.compact textarea,.auth-modal input,.conversation input,.thread-list button,.bubble,.level-box,.profile>span,.avatar,.theme,.brand,.sidebar nav a,.filters button,.modal-close,.load-more{transition:background-color .25s,color .25s,border-color .25s}
+:root[data-theme="light"] .sidebar,:root[data-theme="natural"] .sidebar{background:var(--side)}
+:root[data-theme="light"] .brand,:root[data-theme="light"] .sidebar nav a.active,:root[data-theme="light"] .filters button.active,:root[data-theme="light"] .search input,:root[data-theme="light"] .modal,:root[data-theme="light"] .compact input,:root[data-theme="light"] .compact select,:root[data-theme="light"] .compact textarea,:root[data-theme="light"] .auth-modal input,:root[data-theme="light"] .conversation input,:root[data-theme="light"] .thread-list button,:root[data-theme="light"] .load-more,:root[data-theme="light"] .modal-close{color:var(--text)}
+:root[data-theme="light"] .sidebar nav a.active,:root[data-theme="light"] .thread-list button.active{background:var(--active)}
+:root[data-theme="light"] .level-box{background:linear-gradient(145deg,#eee8d9,#fff)}
+:root[data-theme="light"] .member-callout{background:#f2ead6;border-color:#cbb875}
+:root[data-theme="light"] .product-card,:root[data-theme="light"] .row-card,:root[data-theme="light"] .metric-grid div,:root[data-theme="light"] .deal-grid article,:root[data-theme="light"] .guide-grid article,:root[data-theme="light"] .settings-panel{background:var(--panel)}
+:root[data-theme="light"] .modal{background:var(--surface)}
+:root[data-theme="light"] .compact input,:root[data-theme="light"] .compact select,:root[data-theme="light"] .compact textarea,:root[data-theme="light"] .auth-modal input,:root[data-theme="light"] .conversation input{background:var(--input)}
+:root[data-theme="light"] .profile>span,:root[data-theme="light"] .avatar{background:var(--control);color:var(--text)}
+:root[data-theme="natural"] .brand,:root[data-theme="natural"] .sidebar nav a,:root[data-theme="natural"] .sidebar nav a.active,:root[data-theme="natural"] .profile,:root[data-theme="natural"] .profile>span,:root[data-theme="natural"] .avatar{color:#f4f0e6}
+:root[data-theme="natural"] .sidebar nav a.active{background:var(--active)}
+:root[data-theme="natural"] .level-box{background:linear-gradient(145deg,#c9bfa8,#f2ede4)}
+:root[data-theme="natural"] .member-callout{background:#ded3b9;border-color:#ad955b}
+:root[data-theme="natural"] .market-panel,:root[data-theme="natural"] .product-card,:root[data-theme="natural"] .row-card,:root[data-theme="natural"] .metric-grid div,:root[data-theme="natural"] .deal-grid article,:root[data-theme="natural"] .guide-grid article,:root[data-theme="natural"] .settings-panel{background:var(--panel)}
+:root[data-theme="natural"] .modal{background:var(--surface);color:var(--text)}
+:root[data-theme="natural"] .compact input,:root[data-theme="natural"] .compact select,:root[data-theme="natural"] .compact textarea,:root[data-theme="natural"] .auth-modal input,:root[data-theme="natural"] .conversation input{background:var(--input);color:var(--text)}
+:root[data-theme="natural"] .filters button.active,:root[data-theme="natural"] .search input,:root[data-theme="natural"] .thread-list button,:root[data-theme="natural"] .load-more,:root[data-theme="natural"] .modal-close{color:var(--text)}
+.gold-btn{color:var(--on-accent)}
