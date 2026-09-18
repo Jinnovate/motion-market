@@ -1,3 +1,5 @@
+import { signup, login, logout, getUser, handleAuthCallback, onAuthChange } from "@netlify/identity";
+
 const products = [
   {id:1,name:"Leica M6 Classic",category:"camera",condition:"Excellent",location:"London",publicPrice:2350,memberPrice:2180,tag:"Featured",image:"https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=900&q=82",description:"A beautifully kept M6 Classic with recent service history, clean finder and smooth advance."},
   {id:2,name:"Bang & Olufsen Beogram",category:"audio",condition:"Very good",location:"Bristol",publicPrice:680,memberPrice:595,tag:"Member deal",image:"https://images.unsplash.com/photo-1484704849700-f032a568e944?auto=format&fit=crop&w=900&q=82",description:"A sculptural audio piece in excellent working order."},
@@ -12,6 +14,7 @@ const products = [
 let memberMode = false;
 let activeCategory = "all";
 let query = "";
+let currentUser = null;
 const savedItems = new Set([1, 4]);
 const myListings = [];
 
@@ -21,6 +24,8 @@ const emptyState = document.querySelector("#emptyState");
 const signinDialog = document.querySelector("#signinDialog");
 const sellDialog = document.querySelector("#sellDialog");
 const productDialog = document.querySelector("#productDialog");
+
+const authDialog = document.createElement("dialog");authDialog.className="modal compact auth-modal";authDialog.innerHTML=`<button class="modal-close" aria-label="Close">×</button><span class="eyebrow">MOTION MARKET ACCOUNT</span><h2 id="authTitle">CREATE ACCOUNT</h2><p id="authIntro">Create your account to save listings, contact sellers and manage your items.</p><form id="authForm"><label id="nameLabel">FULL NAME<input name="fullName" autocomplete="name" required></label><label>EMAIL<input name="email" type="email" autocomplete="email" required></label><label>PASSWORD<input name="password" type="password" autocomplete="new-password" minlength="8" required></label><p class="auth-error" id="authError"></p><button class="gold-btn full" type="submit">CREATE ACCOUNT</button></form><button class="auth-switch" id="authSwitch">ALREADY HAVE AN ACCOUNT? SIGN IN</button>`;document.body.appendChild(authDialog);let authMode="signup";
 
 const money = value => new Intl.NumberFormat("en-GB", {style:"currency",currency:"GBP",maximumFractionDigits:0}).format(value);
 
@@ -78,6 +83,10 @@ document.querySelectorAll("dialog").forEach(dialog => dialog.addEventListener("c
 document.querySelector("#loadMore").addEventListener("click", () => showToast("You’ve reached the end of the demo listings."));
 
 function showToast(message){ const toast = document.querySelector("#toast"); toast.textContent = message; toast.classList.add("show"); setTimeout(() => toast.classList.remove("show"), 2600); }
+
+function renderAccount(){const name=currentUser?.user_metadata?.full_name||currentUser?.email?.split("@")[0]||"Guest";document.querySelector(".profile b").textContent=name;document.querySelector(".profile small").textContent=currentUser?"market account":"create an account";document.querySelector(".avatar").textContent=currentUser?name.charAt(0).toUpperCase():"↪";document.querySelector(".avatar").title=currentUser?"Account and sign out":"Create account or sign in";}
+function openAuth(mode="signup"){if(currentUser){if(confirm(`Signed in as ${currentUser.email}. Sign out?`))logout().then(()=>{currentUser=null;renderAccount();showToast("Signed out");});return;}authMode=mode;const isSignup=mode==="signup";authDialog.querySelector("#authTitle").textContent=isSignup?"CREATE ACCOUNT":"SIGN IN";authDialog.querySelector("#authIntro").textContent=isSignup?"Create your account to save listings, contact sellers and manage your items.":"Welcome back. Sign in to continue to Motion Market.";authDialog.querySelector("#nameLabel").hidden=!isSignup;authDialog.querySelector('[name="fullName"]').required=isSignup;authDialog.querySelector('[name="password"]').autocomplete=isSignup?"new-password":"current-password";authDialog.querySelector('[type="submit"]').textContent=isSignup?"CREATE ACCOUNT":"SIGN IN";authDialog.querySelector("#authSwitch").textContent=isSignup?"ALREADY HAVE AN ACCOUNT? SIGN IN":"NEW TO MOTION MARKET? CREATE ACCOUNT";authDialog.querySelector("#authError").textContent="";authDialog.showModal();}
+document.querySelector(".avatar").addEventListener("click",()=>openAuth());document.querySelector(".profile").addEventListener("click",e=>{if(!e.target.closest("button"))openAuth();});authDialog.querySelector(".modal-close").addEventListener("click",()=>authDialog.close());authDialog.querySelector("#authSwitch").addEventListener("click",()=>openAuth(authMode==="signup"?"login":"signup"));authDialog.querySelector("#authForm").addEventListener("submit",async e=>{e.preventDefault();const data=new FormData(e.target),button=e.target.querySelector('[type="submit"]'),error=authDialog.querySelector("#authError");button.disabled=true;button.textContent="PLEASE WAIT…";error.textContent="";try{if(authMode==="signup"){await signup(data.get("email"),data.get("password"),{full_name:data.get("fullName")});authDialog.close();showToast("Check your email to confirm your account");}else{currentUser=await login(data.get("email"),data.get("password"));authDialog.close();renderAccount();showToast("Welcome back");}}catch(err){error.textContent=err?.message||"Account service is not available yet.";}finally{button.disabled=false;button.textContent=authMode==="signup"?"CREATE ACCOUNT":"SIGN IN";}});onAuthChange((_event,user)=>{currentUser=user;renderAccount();});(async()=>{try{await handleAuthCallback();currentUser=await getUser();}catch{}renderAccount();})();
 
 renderProducts();
 
