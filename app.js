@@ -12,6 +12,8 @@ const products = [
 let memberMode = false;
 let activeCategory = "all";
 let query = "";
+const savedItems = new Set([1, 4]);
+const myListings = [];
 
 const grid = document.querySelector("#productGrid");
 const searchInput = document.querySelector("#searchInput");
@@ -27,7 +29,7 @@ function renderProducts(){
   grid.innerHTML = visible.map(product => `
     <article class="product-card" data-product-id="${product.id}" tabindex="0" aria-label="View ${product.name}">
       <div class="product-image"><img src="${product.image}" alt="${product.name}" loading="lazy">
-        <div class="card-badges"><span class="card-badge">${product.tag}</span>${product.memberPrice ? '<span class="card-badge member">MO price</span>' : ''}</div>
+        <div class="card-badges"><span class="card-badge">${product.tag}</span><button class="save-btn" data-save-id="${product.id}" aria-label="Save ${product.name}">${savedItems.has(product.id) ? '★' : '☆'}</button></div>
       </div>
       <div class="product-info">
         <div class="product-meta"><span>${product.condition}</span><span>${product.location}</span></div>
@@ -45,13 +47,13 @@ function showProduct(id){
   document.querySelector("#interestButton").addEventListener("click", () => showToast("Buyer enquiries will be enabled with the live backend."));
 }
 
-document.querySelectorAll(".category-tabs button").forEach(button => button.addEventListener("click", () => {
-  document.querySelector(".category-tabs .active").classList.remove("active");
+document.querySelectorAll(".filters button[data-category]").forEach(button => button.addEventListener("click", () => {
+  document.querySelector(".filters button[data-category].active")?.classList.remove("active");
   button.classList.add("active"); activeCategory = button.dataset.category; renderProducts();
 }));
 
 searchInput.addEventListener("input", event => { query = event.target.value.toLowerCase().trim(); renderProducts(); });
-grid.addEventListener("click", event => { const card = event.target.closest(".product-card"); if(card) showProduct(card.dataset.productId); });
+grid.addEventListener("click", event => { const save = event.target.closest(".save-btn"); if(save){ event.stopPropagation(); const id=Number(save.dataset.saveId); savedItems.has(id)?savedItems.delete(id):savedItems.add(id); renderProducts(); showToast(savedItems.has(id)?"Item saved":"Item removed from saved"); return; } const card = event.target.closest(".product-card"); if(card) showProduct(card.dataset.productId); });
 grid.addEventListener("keydown", event => { const card = event.target.closest(".product-card"); if(card && (event.key === "Enter" || event.key === " ")) showProduct(card.dataset.productId); });
 
 function openSignin(){ signinDialog.showModal(); }
@@ -66,7 +68,7 @@ function openSell(){ sellDialog.showModal(); }
 document.querySelectorAll("#sellButton").forEach(button => button.addEventListener("click", openSell));
 document.querySelector("#sellForm").addEventListener("submit", event => {
   event.preventDefault(); const data = new FormData(event.target);
-  products.unshift({id:Date.now(),name:data.get("name"),category:data.get("category"),condition:"Draft",location:"Your location",publicPrice:Number(data.get("publicPrice")),memberPrice:Number(data.get("memberPrice")),tag:"Preview",image:"https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=900&q=82",description:data.get("description")});
+  const newItem={id:Date.now(),name:data.get("name"),category:data.get("category"),condition:"Draft",location:"Your location",publicPrice:Number(data.get("publicPrice")),memberPrice:Number(data.get("memberPrice")),tag:"Preview",image:"https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=900&q=82",description:data.get("description")}; products.unshift(newItem); myListings.unshift(newItem);
   activeCategory = "all"; query = ""; searchInput.value = ""; document.querySelectorAll(".category-tabs button").forEach(b => b.classList.toggle("active", b.dataset.category === "all"));
   renderProducts(); sellDialog.close(); event.target.reset(); document.querySelector("#browse").scrollIntoView(); showToast("Listing preview added");
 });
@@ -78,3 +80,27 @@ document.querySelector("#loadMore").addEventListener("click", () => showToast("Y
 function showToast(message){ const toast = document.querySelector("#toast"); toast.textContent = message; toast.classList.add("show"); setTimeout(() => toast.classList.remove("show"), 2600); }
 
 renderProducts();
+
+const main = document.querySelector("main");
+const marketIntro = document.querySelector(".intro");
+const marketPanel = document.querySelector("#browse");
+const subPage = document.createElement("section");
+subPage.id = "subPage"; subPage.className = "sub-page"; subPage.hidden = true; main.appendChild(subPage);
+
+const pageContent = {
+  saved: () => `<div class="page-title"><span class="eyebrow">YOUR SHORTLIST</span><h1>SAVED ITEMS</h1><p>${savedItems.size} items kept for later.</p></div><div class="saved-list">${[...savedItems].map(id=>{const p=products.find(x=>x.id===id);return p?`<article class="row-card" data-open-product="${p.id}"><img src="${p.image}" alt=""><div><small>${p.category} · ${p.location}</small><h3>${p.name}</h3><b>${money(p.publicPrice)}</b></div><button data-remove-saved="${p.id}">REMOVE</button></article>`:""}).join("") || '<div class="empty-panel">NO SAVED ITEMS YET</div>'}</div>`,
+  listings: () => `<div class="page-title"><span class="eyebrow">SELLER DESK</span><h1>MY LISTINGS</h1><p>Manage your live and draft items.</p><button class="gold-btn" data-open-sell>+ LIST AN ITEM</button></div><div class="metric-grid"><div><small>ACTIVE</small><strong>${myListings.length}</strong></div><div><small>ENQUIRIES</small><strong>0</strong></div><div><small>SOLD</small><strong>0</strong></div></div><div class="saved-list">${myListings.map(p=>`<article class="row-card"><img src="${p.image}" alt=""><div><small>DRAFT · ${p.category}</small><h3>${p.name}</h3><b>${money(p.publicPrice)}</b></div><button>EDIT</button></article>`).join("") || '<div class="empty-panel">NO LISTINGS YET — USE “LIST AN ITEM” TO CREATE ONE.</div>'}</div>`,
+  messages: () => `<div class="page-title"><span class="eyebrow">BUYER & SELLER CONTACT</span><h1>MESSAGES</h1><p>Keep every market conversation in one place.</p></div><div class="messages-layout"><div class="thread-list"><button class="active"><b>AMELIA W.</b><span>Leica M6 Classic</span><small>Is collection possible?</small></button><button><b>TOM S.</b><span>Snow Peak Field Kitchen</span><small>Still available?</small></button></div><div class="conversation"><div><span class="eyebrow">LEICA M6 CLASSIC</span><h2>AMELIA W.</h2></div><p class="bubble">Hi Joel — is collection in London possible this weekend?</p><form id="messageForm"><input required placeholder="Write a reply"><button class="gold-btn">SEND</button></form></div></div>`,
+  deals: () => `<div class="page-title"><span class="eyebrow">MOTION ONLY BENEFIT</span><h1>MEMBER DEALS</h1><p>Private prices set by members, for members.</p><button class="gold-btn" data-verify>${memberMode?'PRICES UNLOCKED':'VERIFY MEMBERSHIP'}</button></div><div class="deal-grid">${products.slice(0,4).map(p=>`<article><span>SAVE ${money(p.publicPrice-p.memberPrice)}</span><h3>${p.name}</h3><p>Public ${money(p.publicPrice)}</p><b>${memberMode?money(p.memberPrice):'LOCKED'}</b></article>`).join("")}</div>`,
+  guide: () => `<div class="page-title"><span class="eyebrow">SELL WITH CONFIDENCE</span><h1>SELLING GUIDE</h1><p>Four steps to a strong Motion Market listing.</p></div><div class="guide-grid"><article><b>01</b><h3>SHOW IT CLEARLY</h3><p>Use honest, well-lit photographs from every important angle.</p></article><article><b>02</b><h3>DESCRIBE THE TRUTH</h3><p>State condition, history, faults and everything included.</p></article><article><b>03</b><h3>SET TWO PRICES</h3><p>Choose a fair public price and an optional Motion Only member rate.</p></article><article><b>04</b><h3>HAND OVER SAFELY</h3><p>Keep communication here and agree collection or tracked delivery.</p></article></div>`,
+  settings: () => `<div class="page-title"><span class="eyebrow">YOUR ACCOUNT</span><h1>SETTINGS & PRIVACY</h1><p>Control how you buy, sell and appear on Motion Market.</p></div><div class="settings-panel"><label><span><b>MARKET PROFILE</b><small>Show your first name and member status</small></span><input type="checkbox" checked></label><label><span><b>MESSAGE NOTIFICATIONS</b><small>Receive updates for buyer and seller enquiries</small></span><input type="checkbox" checked></label><label><span><b>MEMBER PRICE VISIBILITY</b><small>Reveal member prices after verification</small></span><input type="checkbox" checked></label><button class="gold-btn" data-save-settings>SAVE SETTINGS</button></div>`
+};
+
+function navigate(page){
+  document.querySelectorAll("[data-page]").forEach(a=>a.classList.toggle("active",a.dataset.page===page));
+  const market=page==="market"; marketIntro.hidden=!market; marketPanel.hidden=!market; subPage.hidden=market;
+  if(!market){ subPage.innerHTML=(pageContent[page]||pageContent.saved)(); window.scrollTo(0,0); }
+}
+document.addEventListener("click", e=>{ const nav=e.target.closest("[data-page]"); if(nav){e.preventDefault(); navigate(nav.dataset.page); history.replaceState(null,"",`#${nav.dataset.page}`);} const open=e.target.closest("[data-open-product]"); if(open) showProduct(open.dataset.openProduct); const remove=e.target.closest("[data-remove-saved]"); if(remove){savedItems.delete(Number(remove.dataset.removeSaved));navigate("saved");showToast("Item removed");} if(e.target.closest("[data-open-sell]")) openSell(); if(e.target.closest("[data-verify]")){ if(memberMode) showToast("Membership already verified"); else openSignin(); } if(e.target.closest("[data-save-settings]")) showToast("Settings saved");});
+document.addEventListener("submit",e=>{if(e.target.id==="messageForm"){e.preventDefault();e.target.reset();showToast("Reply sent");}});
+navigate(location.hash.slice(1)||"market");
